@@ -40,7 +40,6 @@ public class DiscardServer {
                         }
                     })
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
-            ;
 
             //绑定端口，开始接收进来的连接
             ChannelFuture f = bootstrap.bind(port).sync();
