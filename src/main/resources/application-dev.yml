@@ -9,12 +9,14 @@ dubbo:
   protocol:
     name: dubbo
     port: 20881
-  registry:
-    address: zookeeper://localhost:2181
-    protocol: zookeeper
+#  registry:
+#    address: zookeeper://localhost:2181
+#    protocol: zookeeper
   scan:
     base-packages: com.example.demo.dubbo.service
   consumer:
     check: false
+  provider:
+    export: false
 
 
