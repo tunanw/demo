@@ -2,13 +2,20 @@ package com.example.demo.lifecycle;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.*;
+import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.beans.factory.config.DestructionAwareBeanPostProcessor;
+import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.context.*;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternUtils;
-import org.springframework.stereotype.Service;
 import org.springframework.util.StringValueResolver;
+import org.springframework.web.context.ServletContextAware;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.servlet.ServletContext;
 
 /**
  * bean生命周期
@@ -16,12 +23,15 @@ import org.springframework.util.StringValueResolver;
  * @author wangzhuang
  * @date 2020/05/27
  */
-@Service
 public class BeanLifecycle implements BeanNameAware, BeanClassLoaderAware, BeanFactoryAware, EnvironmentAware,
         EmbeddedValueResolverAware, ResourceLoaderAware, ApplicationEventPublisherAware, MessageSourceAware,
-        ApplicationContextAware {
-    // 顺序
+        ApplicationContextAware, ServletContextAware, BeanPostProcessor, InitializingBean, DisposableBean, DestructionAwareBeanPostProcessor {
+
     private int order;
+
+    public BeanLifecycle() {
+        System.out.println(++order + ":构造函数");
+    }
 
     /**
      * Set the name of the bean in the bean factory that created this bean.
@@ -121,7 +131,7 @@ public class BeanLifecycle implements BeanNameAware, BeanClassLoaderAware, BeanF
      */
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
-        System.out.println(++order + ":ApplicationEventPublisherAware#setMessageSource:" + applicationEventPublisher.toString());
+        System.out.println(++order + ":ApplicationEventPublisherAware#setApplicationEventPublisher:" + applicationEventPublisher.toString());
     }
 
     /**
@@ -155,4 +165,142 @@ public class BeanLifecycle implements BeanNameAware, BeanClassLoaderAware, BeanF
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         System.out.println(++order + ":ApplicationContextAware#setApplicationContext:" + applicationContext.toString());
     }
+
+    /**
+     * Set the {@link ServletContext} that this object runs in.
+     * <p>Invoked after population of normal bean properties but before an init
+     * callback like InitializingBean's {@code afterPropertiesSet} or a
+     * custom init-method. Invoked after ApplicationContextAware's
+     * {@code setApplicationContext}.
+     *
+     * @param servletContext the ServletContext object to be used by this object
+     * @see InitializingBean#afterPropertiesSet
+     * @see ApplicationContextAware#setApplicationContext
+     */
+    @Override
+    public void setServletContext(ServletContext servletContext) {
+        System.out.println(++order + ":ServletContextAware#setServletContext:" + servletContext.toString());
+    }
+
+    /**
+     * Apply this {@code BeanPostProcessor} to the given new bean instance <i>before</i> any bean
+     * initialization callbacks (like InitializingBean's {@code afterPropertiesSet}
+     * or a custom init-method). The bean will already be populated with property values.
+     * The returned bean instance may be a wrapper around the original.
+     * <p>The default implementation returns the given {@code bean} as-is.
+     *
+     * @param bean     the new bean instance
+     * @param beanName the name of the bean
+     * @return the bean instance to use, either the original or a wrapped one;
+     * if {@code null}, no subsequent BeanPostProcessors will be invoked
+     * @throws BeansException in case of errors
+     * @see InitializingBean#afterPropertiesSet
+     */
+    @Override
+    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+//        System.out.println(++order + ":BeanPostProcessor#postProcessBeforeInitialization:" + beanName);
+        return bean;
+    }
+
+    /**
+     * Invoked by the containing {@code BeanFactory} after it has set all bean properties
+     * and satisfied {@link BeanFactoryAware}, {@code ApplicationContextAware} etc.
+     * <p>This method allows the bean instance to perform validation of its overall
+     * configuration and final initialization when all bean properties have been set.
+     *
+     * @throws Exception in the event of misconfiguration (such as failure to set an
+     *                   essential property) or if initialization fails for any other reason
+     */
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        System.out.println(++order + ":InitializingBean#afterPropertiesSet");
+    }
+
+    /**
+     * 自定义init method
+     */
+    public void initMethod() {
+        System.out.println(++order + ":custom init method");
+    }
+
+    /**
+     * PostConstruct method
+     */
+    @PostConstruct
+    public void postConstruct() {
+        System.out.println(++order + ":PostConstruct method");
+    }
+
+    /**
+     * Apply this {@code BeanPostProcessor} to the given new bean instance <i>after</i> any bean
+     * initialization callbacks (like InitializingBean's {@code afterPropertiesSet}
+     * or a custom init-method). The bean will already be populated with property values.
+     * The returned bean instance may be a wrapper around the original.
+     * <p>In case of a FactoryBean, this callback will be invoked for both the FactoryBean
+     * instance and the objects created by the FactoryBean (as of Spring 2.0). The
+     * post-processor can decide whether to apply to either the FactoryBean or created
+     * objects or both through corresponding {@code bean instanceof FactoryBean} checks.
+     * <p>This callback will also be invoked after a short-circuiting triggered by a
+     * {@link InstantiationAwareBeanPostProcessor#postProcessBeforeInstantiation} method,
+     * in contrast to all other {@code BeanPostProcessor} callbacks.
+     * <p>The default implementation returns the given {@code bean} as-is.
+     *
+     * @param bean     the new bean instance
+     * @param beanName the name of the bean
+     * @return the bean instance to use, either the original or a wrapped one;
+     * if {@code null}, no subsequent BeanPostProcessors will be invoked
+     * @throws BeansException in case of errors
+     * @see InitializingBean#afterPropertiesSet
+     * @see FactoryBean
+     */
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+//        System.out.println(++order + ":BeanPostProcessor#postProcessAfterInitialization:" + bean.toString());
+        return bean;
+    }
+
+    /**
+     * Invoked by the containing {@code BeanFactory} on destruction of a bean.
+     *
+     * @throws Exception in case of shutdown errors. Exceptions will get logged
+     *                   but not rethrown to allow other beans to release their resources as well.
+     */
+    @Override
+    public void destroy() throws Exception {
+        System.out.println(++order + ":DisposableBean#destroy");
+    }
+
+    /**
+     * 自定义destroy method
+     */
+    public void destroyMethod() {
+        System.out.println(++order + ":custom destroy method");
+    }
+
+    /**
+     * preDestroy method
+     */
+    @PreDestroy
+    public void preDestroy() {
+        System.out.println(++order + ":PreDestroy method");
+    }
+
+    /**
+     * Apply this BeanPostProcessor to the given bean instance before its
+     * destruction, e.g. invoking custom destruction callbacks.
+     * <p>Like DisposableBean's {@code destroy} and a custom destroy method, this
+     * callback will only apply to beans which the container fully manages the
+     * lifecycle for. This is usually the case for singletons and scoped beans.
+     *
+     * @param bean     the bean instance to be destroyed
+     * @param beanName the name of the bean
+     * @throws BeansException in case of errors
+     * @see DisposableBean#destroy()
+     * @see AbstractBeanDefinition#setDestroyMethodName(String)
+     */
+    @Override
+    public void postProcessBeforeDestruction(Object bean, String beanName) throws BeansException {
+//        System.out.println(++order + ":DestructionAwareBeanPostProcessor#postProcessBeforeDestruction:" + beanName);
+    }
+
 }
